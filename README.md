@@ -92,8 +92,12 @@ To manually remove MSS clamping rules from all `wg*` interfaces:
 for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep '^wg'); do
   iptables -t mangle -D FORWARD -o "$iface" -p tcp --tcp-flags SYN,RST SYN \
     -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null
+  iptables -t mangle -D FORWARD -o "$iface" -p tcp --tcp-flags SYN,RST SYN \
+    -j TCPMSS --set-mss 1240 2>/dev/null
 done
 ```
+
+Note the current install script only adds the second rule with `--set-mss 1240` but both are shown so the uninstall instructions are backwards compatible.
 
 > 💡 The service will reapply the rules at the next scheduled interval or can be triggered manually using `systemctl start wg-mss.service`.
 
