@@ -86,18 +86,18 @@ iptables -t mangle -S FORWARD | grep TCPMSS
 
 ## 🧹 Remove All MSS Rules (Manual Test)
 
-To manually remove MSS clamping rules from all `wg*` interfaces:
+To manually remove MSS clamping rules from all `wg*` interfaces, in both
+directions and whichever option they use (`--clamp-mss-to-pmtu` or
+`--set-mss`), including rules for `wg` interfaces that no longer exist:
 
 ```bash
-for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep '^wg'); do
-  iptables -t mangle -D FORWARD -o "$iface" -p tcp --tcp-flags SYN,RST SYN \
-    -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null
-  iptables -t mangle -D FORWARD -o "$iface" -p tcp --tcp-flags SYN,RST SYN \
-    -j TCPMSS --set-mss 1240 2>/dev/null
-done
+iptables -w -t mangle -S FORWARD \
+  | grep -E -- '-[io] wg[^ ]* .*-j TCPMSS' \
+  | sed 's/^-A /-D /' \
+  | while read -r rule; do iptables -w -t mangle $rule; done
 ```
 
-Note the current install script only adds the second rule with `--set-mss 1240` but both are shown so the uninstall instructions are backwards compatible.
+This is what `uninstall.sh` does.
 
 > 💡 The service will reapply the rules at the next scheduled interval or can be triggered manually using `systemctl start wg-mss.service`.
 
